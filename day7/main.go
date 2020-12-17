@@ -13,7 +13,7 @@ type (
 	node         string
 	containsEdge struct {
 		target *node
-		count  int
+		weight int
 	}
 	containedByEdge struct {
 		target *node
@@ -59,7 +59,7 @@ func (graph graphStruct) countContents(n *node) int {
 	res := 0
 
 	for _, edge := range graph.containsEdges[n] {
-		res += edge.count * (1 + graph.countContents(edge.target))
+		res += edge.weight * (1 + graph.countContents(edge.target))
 	}
 
 	return res
@@ -109,7 +109,7 @@ func (graph *graphStruct) ParseLine(line string) error {
 
 		graph.containsEdges[container] = append(graph.containsEdges[container], containsEdge{
 			target: target,
-			count:  count,
+			weight: count,
 		})
 
 		graph.containedByEdges[target] = append(graph.containedByEdges[target], containedByEdge{
