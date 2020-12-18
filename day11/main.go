@@ -6,18 +6,50 @@ import (
 	"strings"
 )
 
-type worldStr struct {
-	seats [][]rune
-	iMax  int
-	jMax  int
+type (
+	worldStr struct {
+		seats [][]rune
+	}
+
+	direction [2]int
+)
+
+var directions = [8]direction{
+	{-1, -1},
+	{-1, 0},
+	{-1, 1},
+	{0, -1},
+	{0, 1},
+	{1, -1},
+	{1, 0},
+	{1, 1},
 }
 
 func main() {
+	part1()
+	part2()
+}
+
+func part2() {
 	world := newWorld(readFile("./input.txt"))
 
-	var changed = true
-	for changed {
-		world, changed = world.next()
+	// iterate
+	for world.part2Next() {
+	}
+
+	// count seats
+	res := 0
+	for _, s := range world.seats {
+		res += count('#', s)
+	}
+
+	log.Printf("Part2 => %v", res)
+}
+
+func part1() {
+	world := newWorld(readFile("./input.txt"))
+
+	for world.part1Next() {
 	}
 
 	// now count seats
@@ -27,15 +59,49 @@ func main() {
 	}
 
 	log.Printf("Part1 => %v", res)
-
 }
 
-func (world worldStr) next() (worldStr, bool) {
+func (world *worldStr) part2Next() bool {
 	var changed bool
 	seats := make([][]rune, len(world.seats))
 	nextWorld := worldStr{
-		iMax:  world.iMax,
-		jMax:  world.jMax,
+		seats: seats,
+	}
+
+	for i := range world.seats {
+		nextWorld.seats[i] = make([]rune, len(world.seats[i]))
+		for j := range world.seats[i] {
+			seat := world.seats[i][j]
+			nextWorld.seats[i][j] = seat
+			visible := []rune{}
+			// look for seats
+			for _, dir := range directions {
+				visible = append(visible, world.lookFrom(i, j, dir))
+			}
+
+			// apply changes if any
+			if seat == 'L' && count('#', visible) == 0 {
+				nextWorld.seats[i][j] = '#'
+				changed = true
+			}
+
+			if seat == '#' && count('#', visible) > 4 {
+				nextWorld.seats[i][j] = 'L'
+				changed = true
+			}
+
+		}
+
+	}
+
+	*world = nextWorld
+	return changed
+}
+
+func (world *worldStr) part1Next() bool {
+	var changed bool
+	seats := make([][]rune, len(world.seats))
+	nextWorld := worldStr{
 		seats: seats,
 	}
 
@@ -59,8 +125,8 @@ func (world worldStr) next() (worldStr, bool) {
 		}
 	}
 
-	return nextWorld, changed
-
+	*world = nextWorld
+	return changed
 }
 
 func count(r rune, list []rune) (res int) {
@@ -72,33 +138,32 @@ func count(r rune, list []rune) (res int) {
 	return res
 }
 
+func (world worldStr) lookFrom(i, j int, dir direction) rune {
+	u, v := i+dir[0], j+dir[1]
+	for world.contains(u, v) {
+		if world.seats[u][v] == '#' {
+			return '#'
+		}
+		if world.seats[u][v] == 'L' {
+			return 'L'
+		}
+		u, v = u+dir[0], v+dir[1]
+	}
+	return '.'
+}
+
 func (world worldStr) adjacent(i, j int) []rune {
 	res := []rune{}
-	if i > 0 && j > 0 {
-		res = append(res, world.seats[i-1][j-1])
-	}
-	if i > 0 {
-		res = append(res, world.seats[i-1][j])
-	}
-	if i > 0 && j < world.jMax {
-		res = append(res, world.seats[i-1][j+1])
-	}
-	if j > 0 {
-		res = append(res, world.seats[i][j-1])
-	}
-	if j < world.jMax {
-		res = append(res, world.seats[i][j+1])
-	}
-	if i < world.iMax && j > 0 {
-		res = append(res, world.seats[i+1][j-1])
-	}
-	if i < world.iMax {
-		res = append(res, world.seats[i+1][j])
-	}
-	if i < world.iMax && j < world.jMax {
-		res = append(res, world.seats[i+1][j+1])
+	for _, dir := range directions {
+		if u, v := i+dir[0], j+dir[1]; world.contains(u, v) {
+			res = append(res, world.seats[u][v])
+		}
 	}
 	return res
+}
+
+func (world worldStr) contains(i, j int) bool {
+	return i >= 0 && j >= 0 && i < len(world.seats) && j < len(world.seats[0])
 }
 
 func newWorld(input []string) worldStr {
@@ -114,8 +179,6 @@ func newWorld(input []string) worldStr {
 			world.seats[i][j] = r
 		}
 	}
-	world.iMax = len(world.seats) - 1
-	world.jMax = len(world.seats[0]) - 1
 
 	return world
 }
@@ -127,6 +190,5 @@ func readFile(path string) []string {
 	}
 	lines := strings.Split(string(data), "\n")
 	lines = lines[0 : len(lines)-1]
-	log.Printf("DEBG '%s'", lines[len(lines)-1])
 	return lines
 }
