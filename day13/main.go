@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -14,18 +15,49 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	buses := []int{}
-	for _, val := range strings.Split(data[1], ",") {
-		if id, err := strconv.Atoi(val); err == nil && val != "x" {
-			buses = append(buses, id)
+	part1(start, data[1])
+	part2(data[1])
+}
+
+func part2(schedule string) {
+	buses := [][2]int{}
+	for i, val := range strings.Split(schedule, ",") {
+		if id, err := strconv.Atoi(val); err == nil {
+			buses = append(buses, [2]int{i, id})
 		}
 	}
 
-	part1(start, buses)
+	// sort to iterate quicker
+	sort.Slice(buses, func(i, j int) bool { return buses[i][1] > buses[j][1] })
 
+	acc := 1
+	val := 0
+	for _, bus := range buses {
+		for (val+bus[0])%bus[1] != 0 {
+			val += acc
+		}
+		acc *= bus[1]
+	}
+
+	log.Printf("Part2 => %v", val)
 }
 
-func part1(start int, buses []int) {
+func test(value int, buses [][2]int) bool {
+	for _, bus := range buses {
+		if (value+bus[0])%bus[1] != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func part1(start int, schedule string) {
+	buses := []int{}
+	for _, val := range strings.Split(schedule, ",") {
+		if id, err := strconv.Atoi(val); err == nil {
+			buses = append(buses, id)
+		}
+	}
 	minWait := math.MaxInt32
 	var rightID int
 	for _, id := range buses {
